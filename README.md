@@ -1,0 +1,1 @@
+[![Fetch and email papers](https://github.com/Ken1301225/arxiv_daily/actions/workflows/send_papers.yml/badge.svg?branch=main&event=schedule)](https://github.com/Ken1301225/arxiv_daily/actions/workflows/send_papers.yml)
