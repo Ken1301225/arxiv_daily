@@ -30,30 +30,62 @@ jobs:
       - name: Fetch papers and generate PDF
         run: |
           python arxiv_pdf.py "${{ vars.PAPER_KEYWORD }}" "${{ vars.NUM_PAPERS }}"
-      
-      - name: Send email
+      - name: Send Email
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-          EMAIL_TO:   ${{ secrets.EMAIL_TO }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: |
           python <<EOF
-          import smtplib
-          from email.message import EmailMessage
+          import smtplib, datetime, logging
+          from email.header import Header
+          from email.utils import formataddr, parseaddr
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
+          from email.mime.application import MIMEApplication
 
-          msg = EmailMessage()
-          msg['Subject'] = '📎 自动发送的论文合集'
-          msg['From'] = '${{ secrets.EMAIL_USER }}'
-          msg['To'] = '${{ secrets.EMAIL_TO }}'
-          msg.set_content('附件是根据关键词 "${{ vars.PAPER_KEYWORD }}" 抓取的最近 ${{ vars.NUM_PAPERS }} 篇 arXiv 论文。')
+          logging.basicConfig(level=logging.INFO)
+          logger = logging.getLogger("email")
 
-          with open('papers.pdf', 'rb') as f:
-            msg.add_attachment(f.read(), maintype='application', subtype='pdf', filename='papers.pdf')
+          def _format_addr(s):
+              name, addr = parseaddr(s)
+              return formataddr((Header(name, 'utf-8').encode(), addr))
 
-          # 使用 SMTP_SSL 来连接 SMTPS 端口
-          with smtplib.SMTP_SSL('smtp.qq.com', 465) as smtp:
-            smtp.login('${{ secrets.EMAIL_USER }}', '${{ secrets.EMAIL_PASS }}')
-            smtp.send_message(msg)
+          sender = "${EMAIL_USER}"
+          receiver = "${EMAIL_TO}"
+          password = "${EMAIL_PASS}"
+          smtp_server = "smtp.qq.com"
+          smtp_port_tls = 587
+          smtp_port_ssl = 465
+
+          today = datetime.datetime.now().strftime('%Y/%m/%d')
+          html = f"<p>你好，</p><p>附件是你订阅的 arXiv 论文合集（{today}）。</p><p>祝阅读愉快！</p>"
+
+          msg = MIMEMultipart()
+          msg['From'] = _format_addr(f"Github Action <{sender}>")
+          msg['To'] = _format_addr(f"You <{receiver}>")
+          msg['Subject'] = Header(f"Daily arXiv {today}", 'utf-8').encode()
+
+          msg.attach(MIMEText(html, 'html', 'utf-8'))
+
+          with open("papers.pdf", "rb") as f:
+              part = MIMEApplication(f.read(), _subtype="pdf")
+              part.add_header('Content-Disposition', 'attachment', filename="papers.pdf")
+              msg.attach(part)
+
+          try:
+              server = smtplib.SMTP(smtp_server, smtp_port_tls)
+              server.starttls()
+              logger.info("Using TLS")
+          except Exception as e:
+              logger.warning(f"Failed to use TLS: {e}")
+              logger.warning(f"Trying SSL...")
+              server = smtplib.SMTP_SSL(smtp_server, smtp_port_ssl)
+
+          server.login(sender, password)
+          server.sendmail(sender, [receiver], msg.as_string())
+          server.quit()
+          logger.info("Email sent successfully")
           EOF
       - name: Upload sent history for record
         uses: actions/upload-artifact@v4
