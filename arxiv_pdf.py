@@ -19,12 +19,11 @@ def save_sent_history(sent_ids):
     with open(HISTORY_FILE, "w") as f:
         json.dump(list(sent_ids), f)
 
-def search_arxiv(keyword, date_from, date_to, max_results=50):
+def search_arxiv(keyword,max_results=50):
     # 日期范围搜索（arXiv 查询语法）
-    query = f"{keyword} AND submittedDate:[{date_from} TO {date_to}]"
 
     search = arxiv.Search(
-        query=query,
+        query=keyword,
         max_results=max_results,
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
@@ -46,15 +45,15 @@ def generate_pdf(papers, filename='papers.pdf'):
     styles = getSampleStyleSheet()
     content = []
 
-    content.append(Paragraph("📚 自动论文合集", styles['Title']))
+    content.append(Paragraph("Paper", styles['Title']))
     content.append(Spacer(1, 20))
 
     for i, paper in enumerate(papers, 1):
         content.append(Paragraph(f"<b>{i}. {paper['title']}</b>", styles['Heading3']))
-        content.append(Paragraph(f"🧑 作者: {', '.join(paper['authors'])}", styles['Normal']))
-        content.append(Paragraph(f"📅 发布时间: {paper['published']}", styles['Normal']))
-        content.append(Paragraph(f"🔗 <a href='{paper['url']}'>{paper['url']}</a>", styles['Normal']))
-        content.append(Paragraph(f"📄 摘要: {paper['summary']}", styles['Normal']))
+        content.append(Paragraph(f"authors: {', '.join(paper['authors'])}", styles['Normal']))
+        content.append(Paragraph(f"published time: {paper['published']}", styles['Normal']))
+        content.append(Paragraph(f"<a href='{paper['url']}'>{paper['url']}</a>", styles['Normal']))
+        content.append(Paragraph(f"abstract: {paper['summary']}", styles['Normal']))
         content.append(Spacer(1, 20))
 
     doc.build(content)
@@ -62,20 +61,13 @@ def generate_pdf(papers, filename='papers.pdf'):
 def fetch_new_papers(keyword, target_count):
     sent_ids = load_sent_history()
     collected = []
-    days_back = 0
-    today = datetime.datetime.now(datetime.timezone.utc)
 
-    while len(collected) < target_count and days_back < 365:  # 限制最多回溯 30 天
-        date = today - datetime.timedelta(days=days_back)
-        date_str = date.strftime("%Y%m%d")
-        results = search_arxiv(keyword, date_str, date_str, max_results=20)
+    results = search_arxiv(keyword, max_results=20)
 
-        for paper in results:
-            if paper["id"] not in sent_ids and len(collected) < target_count:
-                collected.append(paper)
-                sent_ids.add(paper["id"])
-
-        days_back += 1
+    for paper in results:
+        if paper["id"] not in sent_ids and len(collected) < target_count:
+            collected.append(paper)
+            sent_ids.add(paper["id"])
 
     save_sent_history(sent_ids)
     return collected
@@ -85,8 +77,10 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python arxiv_pdf.py <keyword> <num_papers>")
         sys.exit(1)
-
+    
+    today = datetime.datetime.now(datetime.timezone.utc)
+    datestamp = today.strftime("%Y%m%d")
     keyword = sys.argv[1]
     num_papers = int(sys.argv[2])
     papers = fetch_new_papers(keyword, num_papers)
-    generate_pdf(papers)
+    generate_pdf(papers,filename=f"{datestamp}:{num_papers}_pieces:arxiv_daily_of_{keyword}.pdf")
