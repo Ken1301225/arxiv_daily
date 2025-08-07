@@ -48,11 +48,12 @@ jobs:
           msg.set_content('附件是根据关键词 "${{ vars.PAPER_KEYWORD }}" 抓取的最近 ${{ vars.NUM_PAPERS }} 篇 arXiv 论文。')
 
           with open('papers.pdf', 'rb') as f:
-              msg.add_attachment(f.read(), maintype='application', subtype='pdf', filename='papers.pdf')
+            msg.add_attachment(f.read(), maintype='application', subtype='pdf', filename='papers.pdf')
 
-          with smtplib.SMTP('smtp.qq.com', 465) as smtp:
-              smtp.login('${{ secrets.EMAIL_USER }}', '${{ secrets.EMAIL_PASS }}')
-              smtp.send_message(msg)
+          # 使用 SMTP_SSL 来连接 SMTPS 端口
+          with smtplib.SMTP_SSL('smtp.qq.com', 465) as smtp:
+            smtp.login('${{ secrets.EMAIL_USER }}', '${{ secrets.EMAIL_PASS }}')
+            smtp.send_message(msg)
           EOF
       - name: Upload sent history for record
         uses: actions/upload-artifact@v4
