@@ -8,10 +8,12 @@ import json
 HISTORY_FILE = "sent_history.json"
 
 def load_sent_history():
-    if os.path.exists(HISTORY_FILE):
-        with open(HISTORY_FILE, "r") as f:
-            return set(json.load(f))
-    return set()
+    if not os.path.exists(HISTORY_FILE):
+        return set()
+    if os.path.getsize(HISTORY_FILE) == 0:
+        return set()
+    with open(HISTORY_FILE, "r") as f:
+        return set(json.load(f))
 
 def save_sent_history(sent_ids):
     with open(HISTORY_FILE, "w") as f:
