@@ -1,0 +1,52 @@
+name: Fetch and email papers
+
+on:
+  schedule:
+    - cron: '0 1 * * *'     # 每天早上 9 点运行（UTC+8）
+  workflow_dispatch:  # 手动触发，可改为 schedule / push
+
+jobs:
+  fetch_and_email:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install arxiv reportlab
+
+      - name: Fetch papers and generate PDF
+        run: |
+          python arxiv_pdf.py "${{ vars.PAPER_KEYWORD }}" "${{ vars.NUM_PAPERS }}"
+      
+      - name: Send email
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO:   ${{ secrets.EMAIL_TO }}
+        run: |
+          python <<EOF
+          import smtplib
+          from email.message import EmailMessage
+
+          msg = EmailMessage()
+          msg['Subject'] = '📎 自动发送的论文合集'
+          msg['From'] = '${{ secrets.EMAIL_USER }}'
+          msg['To'] = '${{ secrets.EMAIL_TO }}'
+          msg.set_content('附件是根据关键词 "${{ vars.PAPER_KEYWORD }}" 抓取的最近 ${{ vars.NUM_PAPERS }} 篇 arXiv 论文。')
+
+          with open('papers.pdf', 'rb') as f:
+              msg.add_attachment(f.read(), maintype='application', subtype='pdf', filename='papers.pdf')
+
+          with smtplib.SMTP('smtp.qq.com', 465) as smtp:
+              smtp.starttls()
+              smtp.login('${{ secrets.EMAIL_USER }}', '${{ secrets.EMAIL_PASS }}')
+              smtp.send_message(msg)
+          EOF
+
