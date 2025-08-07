@@ -17,6 +17,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      - name: Restore sent history cache
+        id: cache-sent
+        uses: actions/cache@v4
+        with:
+          path: sent_history.json
+          key: arxiv-sent-history
 
       - name: Install dependencies
         run: pip install arxiv reportlab
@@ -45,21 +51,10 @@ jobs:
               msg.add_attachment(f.read(), maintype='application', subtype='pdf', filename='papers.pdf')
 
           with smtplib.SMTP('smtp.qq.com', 465) as smtp:
-              smtp.starttls()
               smtp.login('${{ secrets.EMAIL_USER }}', '${{ secrets.EMAIL_PASS }}')
               smtp.send_message(msg)
           EOF
-      - name: Restore sent history cache
-        uses: actions/cache@v4
-        with:
-          path: sent_history.json
-          key: arxiv-sent-history
-
-      - name: Fetch papers and generate PDF
-        run: |
-          python arxiv_pdf.py "${{ vars.PAPER_KEYWORD }}" "${{ vars.NUM_PAPERS }}"
-
-      - name: Save updated history
+      - name: Upload sent history for record
         uses: actions/upload-artifact@v4
         with:
           name: sent-history

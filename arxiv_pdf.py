@@ -40,12 +40,14 @@ def search_arxiv(keyword,max_results=50):
         })
     return results
 
-def generate_pdf(papers, filename='papers.pdf'):
+def generate_pdf(papers, keyword , num_papers ,filename='papers.pdf'):
     doc = SimpleDocTemplate(filename)
     styles = getSampleStyleSheet()
     content = []
 
-    content.append(Paragraph("Paper", styles['Title']))
+    today = datetime.datetime.now(datetime.timezone.utc)
+    datestamp = today.strftime("%Y%m%d")
+    content.append(Paragraph(f"{datestamp}:{num_papers}_pieces:arxiv_daily_of_{keyword}", styles['Title']))
     content.append(Spacer(1, 20))
 
     for i, paper in enumerate(papers, 1):
@@ -78,9 +80,7 @@ if __name__ == "__main__":
         print("Usage: python arxiv_pdf.py <keyword> <num_papers>")
         sys.exit(1)
     
-    today = datetime.datetime.now(datetime.timezone.utc)
-    datestamp = today.strftime("%Y%m%d")
     keyword = sys.argv[1]
     num_papers = int(sys.argv[2])
     papers = fetch_new_papers(keyword, num_papers)
-    generate_pdf(papers,filename=f"{datestamp}:{num_papers}_pieces:arxiv_daily_of_{keyword}.pdf")
+    generate_pdf(papers,keyword,num_papers)
