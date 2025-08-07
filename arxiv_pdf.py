@@ -63,7 +63,7 @@ def fetch_new_papers(keyword, target_count):
     sent_ids = load_sent_history()
     collected = []
     days_back = 0
-    today = datetime.datetime.utcnow().date()
+    today = datetime.datetime.now(datetime.timezone.utc)
 
     while len(collected) < target_count and days_back < 365:  # 限制最多回溯 30 天
         date = today - datetime.timedelta(days=days_back)
