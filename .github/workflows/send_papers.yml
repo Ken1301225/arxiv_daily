@@ -49,4 +49,18 @@ jobs:
               smtp.login('${{ secrets.EMAIL_USER }}', '${{ secrets.EMAIL_PASS }}')
               smtp.send_message(msg)
           EOF
+      - name: Restore sent history cache
+        uses: actions/cache@v4
+        with:
+          path: sent_history.json
+          key: arxiv-sent-history
 
+      - name: Fetch papers and generate PDF
+        run: |
+          python arxiv_pdf.py "${{ vars.PAPER_KEYWORD }}" "${{ vars.NUM_PAPERS }}"
+
+      - name: Save updated history
+        uses: actions/upload-artifact@v4
+        with:
+          name: sent-history
+          path: sent_history.json
