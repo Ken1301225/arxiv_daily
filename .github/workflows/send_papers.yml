@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: pip install arxiv reportlab
 
-      - name: Fetch papers and generate PDF
+      - name: Fetch papers and generate html 
         run: |
           python arxiv_pdf.py "${{ vars.PAPER_KEYWORD }}" "${{ vars.NUM_PAPERS }}"
       - name: Send Email
@@ -61,6 +61,8 @@ jobs:
           today = datetime.datetime.now().strftime('%Y/%m/%d')
           html = f"<p>你好，</p><p>附件是你订阅的 arXiv 论文合集（{today}）。</p><p>祝阅读愉快！</p>"
 
+          with open("papers.html", "r", encoding="utf-8") as f:
+              html = f.read()
           msg = MIMEMultipart()
           msg['From'] = _format_addr(f"Github Action <{sender}>")
           msg['To'] = _format_addr(f"You <{receiver}>")
@@ -68,10 +70,10 @@ jobs:
 
           msg.attach(MIMEText(html, 'html', 'utf-8'))
 
-          with open("papers.pdf", "rb") as f:
-              part = MIMEApplication(f.read(), _subtype="pdf")
-              part.add_header('Content-Disposition', 'attachment', filename="papers.pdf")
-              msg.attach(part)
+          # with open("papers.pdf", "rb") as f:
+              # part = MIMEApplication(f.read(), _subtype="pdf")
+              # part.add_header('Content-Disposition', 'attachment', filename="papers.pdf")
+              # msg.attach(part)
 
           try:
               server = smtplib.SMTP(smtp_server, smtp_port_tls)

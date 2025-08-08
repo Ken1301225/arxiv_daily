@@ -40,6 +40,41 @@ def search_arxiv(keyword,max_results=50):
         })
     return results
 
+def generate_html(papers, keyword, num_papers,filename="papers.html"):
+    today = datetime.datetime.now(datetime.timezone.utc)
+    datestamp = today.strftime("%Y-%m-%d")
+
+    html = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+            h1 {{ color: #333; }}
+            .paper {{ margin-bottom: 30px; }}
+            .title {{ font-size: 18px; font-weight: bold; }}
+            .meta {{ color: #555; font-size: 14px; }}
+            .abstract {{ margin-top: 10px; }}
+        </style>
+    </head>
+    <body>
+        <h1>{datestamp} | {num_papers} Papers | arXiv Daily: {keyword}</h1>
+    """
+
+    for i, paper in enumerate(papers, 1):
+        html += f"""
+        <div class="paper">
+            <div class="title">{i}. {paper['title']}</div>
+            <div class="meta">Authors: {', '.join(paper['authors'])}</div>
+            <div class="meta">Published: {paper['published']}</div>
+            <div class="meta">Link: <a href="{paper['url']}">{paper['url']}</a></div>
+            <div class="abstract">{paper['summary']}</div>
+        </div>
+        """
+
+    html += "</body></html>"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(html)
+    
 def generate_pdf(papers, keyword , num_papers ,filename='papers.pdf'):
     doc = SimpleDocTemplate(filename)
     styles = getSampleStyleSheet()
@@ -83,4 +118,5 @@ if __name__ == "__main__":
     keyword = sys.argv[1]
     num_papers = int(sys.argv[2])
     papers = fetch_new_papers(keyword, num_papers)
-    generate_pdf(papers,keyword,num_papers)
+    # generate_pdf(papers,keyword,num_papers)
+    generate_html(papers,keyword,num_papers)
