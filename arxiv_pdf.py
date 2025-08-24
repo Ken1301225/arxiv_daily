@@ -19,7 +19,7 @@ def save_sent_history(sent_ids):
     with open(HISTORY_FILE, "w") as f:
         json.dump(list(sent_ids), f)
 
-def search_arxiv(keyword,max_results=50):
+def search_arxiv(keyword,max_results=100):
     # 日期范围搜索（arXiv 查询语法）
 
     search = arxiv.Search(
